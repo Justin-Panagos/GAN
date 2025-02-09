@@ -1,0 +1,65 @@
+{% load static compress %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAN Text-to-Image</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h1>Generate Images with Text</h1>
+        <form id="generateForm">
+            {% csrf_token %}
+            <input type="file" id="imageInput" accept="image/*">
+            <input type="text" id="textInput" placeholder="Enter text...">
+            <button type="submit">Generate</button>
+        </form>
+        <div id="loading" style="display:none;">Generating image...</div>
+        <div id="result"></div>
+    </div>
+    {% comment %} <script src="{% static 'js/base.js' %}"></script> {% endcomment %}
+    <script>
+        document.getElementById('generateForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            // Show loading message
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+
+            // Prepare the form data
+            const formData = new FormData();
+            const imageInput = document.getElementById('imageInput').files[0];
+            const textInput = document.getElementById('textInput').value;
+            
+            formData.append('image', imageInput);
+            formData.append('text', textInput);
+
+            // Send AJAX request to generate image
+            fetch("{% url 'pages:generate_image' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,  // Add CSRF token to headers
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading message
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result').style.display = 'block';
+
+                // Create image element and set its source
+                const imageElement = document.createElement('img');
+                imageElement.src = 'data:image/png;base64,' + data.image;
+                document.getElementById('result').appendChild(imageElement);
+            })
+            .catch(error => {
+                console.error("Error generating image:", error);
+                document.getElementById('loading').style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
