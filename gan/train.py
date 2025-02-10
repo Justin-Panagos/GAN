@@ -13,6 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from gan.datasets import get_data_loader  # Use your dataset here
 from gan.models import Discriminator, Generator
+from gan.utils import latent_vector
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -39,9 +40,9 @@ def save_checkpoint(model, optimizer, epoch, filename="gan_checkpoint.pth"):
     )
 
 
-# Training loop
+# Training loop2
 def train_gan():
-    num_epochs = 50
+    num_epochs = 150
     dataloader = get_data_loader()  # Use your dataset here
 
     for epoch in range(num_epochs):
@@ -55,25 +56,37 @@ def train_gan():
 
             # Train the Discriminator
             optimizer_D.zero_grad()
-            output_real = discriminator(real_images)
-            loss_real = criterion(output_real, real_labels)
-            loss_real.backward()
+            output_real = discriminator(
+                real_images
+            )  # Real images pass through discriminator
+            loss_real = criterion(output_real, real_labels)  # Loss for real images
+            loss_real.backward()  # Backpropagate the loss
 
-            noise = torch.randn(batch_size, 100).to(device)
-            fake_images = generator(noise)
-            output_fake = discriminator(fake_images.detach())
-            loss_fake = criterion(output_fake, fake_labels)
-            loss_fake.backward()
+            # Fake images (from generator)
+            noise = torch.randn(batch_size, latent_vector).to(
+                device
+            )  # Generate random noise for generator input
+            fake_images = generator(noise)  # Generate fake images
+            output_fake = discriminator(
+                fake_images.detach()
+            )  # Discriminator sees fake images
+            loss_fake = criterion(output_fake, fake_labels)  # Loss for fake images
+            loss_fake.backward()  # Backpropagate the loss
 
-            optimizer_D.step()
+            # Total discriminator loss
+            optimizer_D.step()  # Update the discriminator's weights
 
             # Train the Generator
-            optimizer_G.zero_grad()
-            output_fake = discriminator(fake_images)
-            loss_G = criterion(output_fake, real_labels)
-            loss_G.backward()
+            optimizer_G.zero_grad()  # Zero the gradients for generator
+            output_fake = discriminator(
+                fake_images
+            )  # Discriminator sees fake images (for generator update)
+            loss_G = criterion(
+                output_fake, real_labels
+            )  # Loss for generator (wants to fool discriminator)
+            loss_G.backward()  # Backpropagate the loss
 
-            optimizer_G.step()
+            optimizer_G.step()  # Update the generator's weights
 
             if i % 100 == 0:
                 print(

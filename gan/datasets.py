@@ -53,8 +53,8 @@ transform = transforms.Compose(
 )
 
 
-# Instantiate the dataset and DataLoader
-def get_data_loader(batch_size=64):
-    dataset = ImageDataset(data_dir="./datasets", transform=transform)
+# Instantiate the dataset and DataLoader, supplies real images
+def get_data_loader(batch_size=64, data_dir="./datasets/images"):
+    dataset = ImageDataset(data_dir=data_dir, transform=transform)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     return dataloader

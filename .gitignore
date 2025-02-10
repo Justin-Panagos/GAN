@@ -10,3 +10,4 @@ wheels/
 .venv
 gan/models/*.pth
 datasets/*
+compressed_static/*
