@@ -15,7 +15,3 @@ This is a Django web app that allows you to generate images using a pre-trained 
 
 ## Setup
 
-1. Install dependencies:
-
-   ```bash
-   pip install -r requirements.txt
