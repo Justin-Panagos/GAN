@@ -29,6 +29,15 @@ optimizer_G = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
 optimizer_D = optim.Adam(discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
 
 
+def load_checkpoint(model, optimizer, filename):
+    checkpoint = torch.load(filename)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    epoch = checkpoint["epoch"]
+    print(f"Loaded checkpoint {filename}, starting from epoch {epoch}")
+    return epoch
+
+
 def save_checkpoint(model, optimizer, epoch, filename="gan_checkpoint.pth"):
     torch.save(
         {
@@ -42,8 +51,21 @@ def save_checkpoint(model, optimizer, epoch, filename="gan_checkpoint.pth"):
 
 # Training loop2
 def train_gan():
-    num_epochs = 150
+    num_epochs = 151
     dataloader = get_data_loader()  # Use your dataset here
+
+    # Loading the generator and discriminator models wiht the last checkpoint to continue training
+    if os.path.exists("gan/models/gan_checkpoint_150_generator.pth"):
+        load_checkpoint(
+            generator, optimizer_G, "gan/models/gan_checkpoint_150_generator.pth"
+        )
+        load_checkpoint(
+            discriminator,
+            optimizer_D,
+            "gan/models/gan_checkpoint_150_discriminator.pth",
+        )
+    else:
+        print("No checkpoint found, starting training from scratch.")
 
     for epoch in range(num_epochs):
         for i, real_images in enumerate(dataloader):
