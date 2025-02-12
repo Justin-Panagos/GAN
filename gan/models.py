@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as func
+import torch.nn.functional as F
 
 from gan.utils import latent_vector
 
@@ -15,7 +16,6 @@ class Generator(nn.Module):
         self.fc1 = nn.Linear(
             latent_vector, 256 * 4 * 4
         )  # Start from a 4x4 image (or smaller size)
-
         # Transposed convolutions to upsample to 64x64x3 image
         self.deconv1 = nn.ConvTranspose2d(
             256, 128, kernel_size=4, stride=2, padding=1
@@ -70,18 +70,21 @@ class Discriminator(nn.Module):
         # Output layer (1 unit for binary classification)
         self.fc1 = nn.Linear(512 * 4 * 4, 1)
 
-        # Activation functions
         self.leaky_relu = nn.LeakyReLU(0.2)
-        self.sigmoid = nn.Sigmoid()
+        """ Only neaded for a GAN, since we are mvoing to a WGAN  we can drop it """
+        # Activation functions
+        # self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.leaky_relu(self.conv1(x))
         x = self.leaky_relu(self.conv2(x))
         x = self.leaky_relu(self.conv3(x))
         x = self.leaky_relu(self.conv4(x))
-
+        # x = self.leaky_relu(self.conv5(x))
+        # x = self.leaky_relu(self.conv6(x))
         x = x.view(x.size(0), -1)  # Flatten the output for the fully connected layer
         x = self.fc1(x)
-        x = self.sigmoid(x)  # Output a probability of the image being real or fake
+        """ Removing the sigmoid as a WGAN no longer needs it """
+        # x = self.sigmoid(x)  # Output a probability of the image being real or fake
 
         return x

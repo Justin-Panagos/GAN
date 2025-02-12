@@ -13,7 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from gan.datasets import get_data_loader  # Use your dataset here
 from gan.models import Discriminator, Generator
-from gan.utils import latent_vector
+from gan.utils import clip_weights, latent_vector
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -21,8 +21,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 generator = Generator().to(device)
 discriminator = Discriminator().to(device)
 
-# Binary Cross Entropy Loss
-criterion = nn.BCELoss()
+# Binary Cross Entropy Loss, used for a regular GAN
+# criterion = nn.BCELoss()
 
 # Optimizers
 optimizer_G = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
@@ -51,18 +51,19 @@ def save_checkpoint(model, optimizer, epoch, filename="gan_checkpoint.pth"):
 
 # Training loop2
 def train_gan():
-    num_epochs = 151
+    num_epochs = 101
     dataloader = get_data_loader()  # Use your dataset here
+    n_critic = 5
 
     # Loading the generator and discriminator models wiht the last checkpoint to continue training
-    if os.path.exists("gan/models/gan_checkpoint_150_generator.pth"):
+    if os.path.exists("gan/models/gan_checkpoint_100_generator.pth"):
         load_checkpoint(
-            generator, optimizer_G, "gan/models/gan_checkpoint_150_generator.pth"
+            generator, optimizer_G, "gan/models/gan_checkpoint_100_generator.pth"
         )
         load_checkpoint(
             discriminator,
             optimizer_D,
-            "gan/models/gan_checkpoint_150_discriminator.pth",
+            "gan/models/gan_checkpoint_100_discriminator.pth",
         )
     else:
         print("No checkpoint found, starting training from scratch.")
@@ -72,39 +73,36 @@ def train_gan():
             real_images = real_images.to(device)
             batch_size = real_images.size(0)
 
-            # Create labels
-            real_labels = torch.ones(batch_size, 1).to(device)
-            fake_labels = torch.zeros(batch_size, 1).to(device)
+            for _ in range(n_critic):
+                # Train the Discriminator
+                optimizer_D.zero_grad()
+                # Real images pass through discriminator
+                output_real = discriminator(real_images)
+                loss_real = output_real.mean()
 
-            # Train the Discriminator
-            optimizer_D.zero_grad()
-            output_real = discriminator(
-                real_images
-            )  # Real images pass through discriminator
-            loss_real = criterion(output_real, real_labels)  # Loss for real images
-            loss_real.backward()  # Backpropagate the loss
+                # Fake images (from generator)
+                # Generate random noise for generator input
+                noise = torch.randn(batch_size, latent_vector).to(device)
+                # Generate fake images
+                fake_images = generator(noise)
+                # Discriminator sees fake images
+                output_fake = discriminator(fake_images.detach())
+                loss_fake = output_fake.mean()  # Loss for fake images
 
-            # Fake images (from generator)
-            noise = torch.randn(batch_size, latent_vector).to(
-                device
-            )  # Generate random noise for generator input
-            fake_images = generator(noise)  # Generate fake images
-            output_fake = discriminator(
-                fake_images.detach()
-            )  # Discriminator sees fake images
-            loss_fake = criterion(output_fake, fake_labels)  # Loss for fake images
-            loss_fake.backward()  # Backpropagate the loss
+                loss_D = loss_fake - loss_real
+                loss_D.backward()  # Backpropagate the loss
 
-            # Total discriminator loss
-            optimizer_D.step()  # Update the discriminator's weights
+                # Total discriminator loss
+                optimizer_D.step()  # Update the discriminator's weights
+
+                clip_weights(discriminator)
 
             # Train the Generator
             optimizer_G.zero_grad()  # Zero the gradients for generator
-            output_fake = discriminator(
-                fake_images
-            )  # Discriminator sees fake images (for generator update)
-            loss_G = criterion(
-                output_fake, real_labels
+            # Discriminator sees fake images (for generator update)
+            output_fake = discriminator(fake_images)
+            loss_G = (
+                -output_fake.mean()
             )  # Loss for generator (wants to fool discriminator)
             loss_G.backward()  # Backpropagate the loss
 
@@ -112,11 +110,11 @@ def train_gan():
 
             if i % 100 == 0:
                 print(
-                    f"Epoch [{epoch}/{num_epochs}], Step [{i}/{len(dataloader)}], D Loss: {loss_real.item() + loss_fake.item()}, G Loss: {loss_G.item()}"
+                    f"Epoch [{epoch}/{num_epochs}], Step [{i}/{len(dataloader)}], D Loss: {loss_D.item()}, G Loss: {loss_G.item()}"
                 )
 
         # Save generated images periodically
-        if epoch % 10 == 0:
+        if epoch % 20 == 0:
             save_checkpoint(
                 generator,
                 optimizer_G,
