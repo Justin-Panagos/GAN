@@ -1,0 +1,208 @@
+{
+    "remote.autoForwardPortsSource": "hybrid",
+    // files
+    "files.associations": {
+        // "**.": "html."
+    },
+    // workbench
+    "workbench.colorTheme": "One Dark",
+    "workbench.tree.indent": 12,
+    // ternimal
+    "terminal.integrated.fontFamily": "MesloLgs NF",
+    "terminal.integrated.scrollback": 10000,
+    // debug
+    "debug.allowBreakpointsEverywhere": true,
+    "debug.terminal.clearBeforeReusing": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "editor.minimap.enabled": false,
+    // "editor.accessibilityPageSize": 500,
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+            {
+                "name": "django tags --> {% %}, {{ }}",
+                "scope": [
+                    "entity.tag.tagbraces.django",
+                    "storage.type.templatetag.django"
+                ],
+                "settings": {
+                    "foreground": "#f7b05e"
+                }
+            },
+            {
+                "name": "django inside tag --> {% ... %}",
+                "scope": [
+                    "string.unquoted.tag-string.django",
+                    "storage.type.variable.django"
+                ],
+                "settings": {
+                    "foreground": "#fb965c"
+                }
+            },
+            {
+                "name": "django inside tag --> 'static' tags",
+                "scope": [
+                    "constant.other.tag.name.django",
+                    "storage.type.custometemplatetag.django"
+                ],
+                "settings": {
+                    "foreground": "#e88ef8"
+                }
+            },
+            {
+                "name": "django inside tag --> for, if etc",
+                "scope": [
+                    "keyword.control.tag-name.django",
+                    "storage.type.templatetag.django"
+                ],
+                "settings": {
+                    "foreground": "#e88ef8"
+                }
+            },
+            {
+                "name": "One Dark italic",
+                "scope": [
+                    "comment",
+                    "entity.other.attribute-name",
+                    "keyword",
+                    "markup.underline.link",
+                    "storage.modifier",
+                    "storage.type",
+                    "string.url",
+                    "variable.language.super",
+                    "variable.language.this"
+                ],
+                "settings": {
+                    "fontStyle": "italic"
+                }
+            },
+            {
+                "name": "One Dark italic reset",
+                "scope": [
+                    "keyword.operator",
+                    "keyword.other.type",
+                    "storage.modifier.import",
+                    "storage.modifier.package",
+                    "storage.type.built-in",
+                    "storage.type.function.arrow",
+                    "storage.type.generic",
+                    "storage.type.java",
+                    "storage.type.primitive"
+                ],
+                "settings": {
+                    "fontStyle": ""
+                }
+            },
+        ]
+    },
+    // python
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.autoClosingBrackets": "always",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "always" // Isort
+        },
+    },
+    // html
+    "html.format.indentHandlebars": true,
+    "html.format.indentInnerHtml": true,
+    "html.autoClosingTags": true,
+    "[html][django-html]": {
+        "editor.defaultFormatter": "monosans.djlint",
+        "editor.formatOnSave": true,
+        "editor.defaultColorDecorators": "auto",
+        "editor.autoClosingBrackets": "always",
+        "editor.bracketPairColorization.enabled": true,
+    },
+    // djlint
+    "djlint.ignore": [
+        "HO14",
+    ],
+    "djlint.useVenv": false,
+    "djlint.closeVoidTags": true,
+    "djlint.formatCss": true,
+    "djlint.formatAttributeTemplateTags": true,
+    "djlint.formatLanguages": [
+        "django-html",
+        "jinja",
+        "jinja-html",
+        "nj",
+        "njk",
+        "nunjucks",
+        "twig",
+        "handlebars",
+        "hbs",
+        "mustache",
+        "html"
+    ],
+    // todo tree
+    "todo-tree.highlights.defaultHighlight": {
+        "gutterIcon": true
+    },
+    "todo-tree.highlights.customHighlight": {
+        "TODO": {
+            "foreground": "#FF8C2C"
+        },
+        "BUG": {
+            "foreground": "#FF4360"
+        },
+        "HACK": {
+            "foreground": "#368BE3"
+        },
+        "FIXME": {
+            "foreground": "#FFBB51"
+        },
+        "[ ]": {
+            "background": "#ff000080"
+        },
+        "[x]": {
+            "background": "#39e639"
+        },
+    },
+    // gitlens
+    "gitlens.codeLens.scopes": [
+        "document",
+        "containers",
+        "blocks"
+    ],
+    "gitlens.hovers.currentLine.over": "line",
+    // coverage-gutters
+    "coverage-gutters.coverageBaseDir": "./coverage",
+    "coverage-gutters.showLineCoverage": true,
+    "coverage-gutters.coverageFileNames": [
+        "lcov.info",
+        "cov.xml",
+        "coverage.xml",
+        "jacoco.xml",
+        "coverage.cobertura.xml"
+    ],
+    // jupyter
+    "jupyter.runStartupCommands": [
+        "import os, sys",
+        "import django",
+        "PROJECTPATH = '${workspaceFolder}'",
+        "sys.path.insert(0, PROJECTPATH)",
+        "os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.local')",
+        "os.environ['DJANGO_ALLOW_ASYNC_UNSAFE'] = 'true'  # https://docs.djangoproject.com/en/4.1/topics/async/#async-safety",
+        "os.chdir(PROJECTPATH)",
+        "django.setup()"
+    ],
+    "jupyter.interactiveWindow.creationMode": "perFile",
+    "black-formatter.importStrategy": "fromEnvironment",
+    "gitlens.graph.layout": "editor",
+    "window.titleBarStyle": "custom",
+    "workbench.tree.stickyScrollMaxItemCount": 5,
+    "github.gitProtocol": "ssh",
+    "git.showPushSuccessNotification": true,
+    "jupyter.askForKernelRestart": false,
+    "[sql]": {
+        "editor.defaultFormatter": "bradymholt.pgformatter"
+    },
+    "interactiveWindow.executeWithShiftEnter": true,
+    "workbench.iconTheme": "material-icon-theme",
+    "material-icon-theme.files.color": "#bdfdf8",
+    "gitlens.views.commitDetails.files.layout": "tree",
+    "git.confirmSync": false,
+}

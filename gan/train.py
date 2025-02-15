@@ -56,14 +56,14 @@ def train_gan():
     n_critic = 5
 
     # Loading the generator and discriminator models wiht the last checkpoint to continue training
-    if os.path.exists("gan/models/gan_checkpoint_100_generator.pth"):
+    if os.path.exists("datasets/models/gan_checkpoint_100_generator.pth"):
         load_checkpoint(
-            generator, optimizer_G, "gan/models/gan_checkpoint_100_generator.pth"
+            generator, optimizer_G, "datasets/models/gan_checkpoint_100_generator.pth"
         )
         load_checkpoint(
             discriminator,
             optimizer_D,
-            "gan/models/gan_checkpoint_100_discriminator.pth",
+            "datasets/models/gan_checkpoint_100_discriminator.pth",
         )
     else:
         print("No checkpoint found, starting training from scratch.")
@@ -119,13 +119,13 @@ def train_gan():
                 generator,
                 optimizer_G,
                 epoch,
-                filename=f"gan/models/gan_checkpoint_{epoch}_generator.pth",
+                filename=f"datasets/models/gan_checkpoint_{epoch}_generator.pth",
             )
             save_checkpoint(
                 discriminator,
                 optimizer_D,
                 epoch,
-                filename=f"gan/models/gan_checkpoint_{epoch}_discriminator.pth",
+                filename=f"datasets/models/gan_checkpoint_{epoch}_discriminator.pth",
             )
 
 

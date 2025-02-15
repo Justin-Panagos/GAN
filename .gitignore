@@ -10,5 +10,7 @@ wheels/
 # Virtual environments
 .venv
 gan/models/*.pth
-datasets/*
+datasets/models/*
+datasets/images/*
+datasets/generated_images/*
 compressed_static/*
