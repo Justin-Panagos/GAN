@@ -6,11 +6,13 @@ dist/
 wheels/
 *.egg-info
 *.sqlite3
+#image files
+*.png
+*.jpe
+*.jpg 
+#checkpoint file
+*.pth 
 
 # Virtual environments
 .venv
-gan/models/*.pth
-datasets/models/*
-datasets/images/*
-datasets/generated_images/*
 compressed_static/*
