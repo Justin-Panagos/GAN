@@ -15,21 +15,12 @@ def save_generated_images(images, epoch):
 
 # Function to clip the weights of the discriminator (critic)
 def compute_gradient_penalty(D, real_samples, fake_samples, device="cuda"):
-    """Computes the gradient penalty for WGAN-GP"""
     alpha = torch.rand(real_samples.size(0), 1, 1, 1).to(device)
-
-    """Resizing of fake images """
-    fake_samples_resized = F.interpolate(
-        fake_samples, size=real_samples.shape[2:], mode="bilinear", align_corners=False
+    interpolates = (alpha * real_samples + (1 - alpha) * fake_samples).requires_grad_(
+        True
     )
-
-    interpolates = (
-        alpha * real_samples + (1 - alpha) * fake_samples_resized
-    ).requires_grad_(True)
-
     d_interpolates = D(interpolates)
     fake = torch.ones(d_interpolates.size()).to(device)
-
     gradients = torch.autograd.grad(
         outputs=d_interpolates,
         inputs=interpolates,
