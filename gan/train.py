@@ -13,7 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from gan.datasets import get_data_loader  # Use your dataset here
 from gan.models import Discriminator, Generator
-from gan.utils import clip_weights, latent_vector
+from gan.utils import compute_gradient_penalty, latent_vector
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -26,7 +26,7 @@ discriminator = Discriminator().to(device)
 
 # Optimizers
 optimizer_G = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
-optimizer_D = optim.Adam(discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+optimizer_D = optim.Adam(discriminator.parameters(), lr=0.00008, betas=(0.5, 0.999))
 
 
 def load_checkpoint(model, optimizer, filename):
@@ -51,9 +51,10 @@ def save_checkpoint(model, optimizer, epoch, filename="gan_checkpoint.pth"):
 
 # Training loop2
 def train_gan():
-    num_epochs = 101
+    num_epochs = 10
     dataloader = get_data_loader()  # Use your dataset here
-    n_critic = 5
+    n_critic = 3
+    lambda_gp = 10  # Gradient penalty coefficient
 
     # Loading the generator and discriminator models wiht the last checkpoint to continue training
     if os.path.exists("datasets/models/gan_checkpoint_100_generator.pth"):
@@ -76,37 +77,33 @@ def train_gan():
             for _ in range(n_critic):
                 # Train the Discriminator
                 optimizer_D.zero_grad()
-                # Real images pass through discriminator
+
+                # Real images
                 output_real = discriminator(real_images)
                 loss_real = output_real.mean()
 
-                # Fake images (from generator)
-                # Generate random noise for generator input
-                noise = torch.randn(batch_size, latent_vector).to(device)
-                # Generate fake images
+                # Fake images
+                noise = torch.randn(batch_size, latent_vector, 1, 1).to(device)
                 fake_images = generator(noise)
-                # Discriminator sees fake images
                 output_fake = discriminator(fake_images.detach())
-                loss_fake = output_fake.mean()  # Loss for fake images
+                loss_fake = output_fake.mean()
 
-                loss_D = loss_fake - loss_real
-                loss_D.backward()  # Backpropagate the loss
+                # Compute gradient penalty
+                gradient_penalty = compute_gradient_penalty(
+                    discriminator, real_images, fake_images, device=device
+                )
 
                 # Total discriminator loss
-                optimizer_D.step()  # Update the discriminator's weights
-
-                clip_weights(discriminator)
+                loss_D = (loss_fake - loss_real) + lambda_gp * gradient_penalty
+                loss_D.backward(retain_graph=True)
+                optimizer_D.step()  # Update discriminator weights
 
             # Train the Generator
-            optimizer_G.zero_grad()  # Zero the gradients for generator
-            # Discriminator sees fake images (for generator update)
+            optimizer_G.zero_grad()
             output_fake = discriminator(fake_images)
-            loss_G = (
-                -output_fake.mean()
-            )  # Loss for generator (wants to fool discriminator)
-            loss_G.backward()  # Backpropagate the loss
-
-            optimizer_G.step()  # Update the generator's weights
+            loss_G = -output_fake.mean()
+            loss_G.backward(retain_graph=True)
+            optimizer_G.step()
 
             if i % 100 == 0:
                 print(

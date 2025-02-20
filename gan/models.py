@@ -12,40 +12,47 @@ class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
 
-        # Input noise vector of size 100 (latent vector)
-        self.fc1 = nn.Linear(
-            latent_vector, 256 * 4 * 4
-        )  # Start from a 4x4 image (or smaller size)
-        # Transposed convolutions to upsample to 64x64x3 image
-        self.deconv1 = nn.ConvTranspose2d(
-            256, 128, kernel_size=4, stride=2, padding=1
-        )  # Upsample to 8x8
-        self.deconv2 = nn.ConvTranspose2d(
-            128, 64, kernel_size=4, stride=2, padding=1
-        )  # Upsample to 16x16
-        self.deconv3 = nn.ConvTranspose2d(
-            64, 32, kernel_size=4, stride=2, padding=1
-        )  # Upsample to 32x32
-        self.deconv4 = nn.ConvTranspose2d(
-            32, 3, kernel_size=4, stride=2, padding=1
-        )  # Upsample to 64x64
-
-        # Activation functions
-        self.relu = nn.ReLU()
-        self.tanh = nn.Tanh()
+        # Increase number of filters/channels and add more layers
+        self.model = nn.Sequential(
+            # Input is a latent vector z (latent_vector = 512)
+            nn.ConvTranspose2d(
+                latent_vector, 1024, kernel_size=4, stride=1, padding=0, bias=False
+            ),
+            nn.BatchNorm2d(1024),
+            nn.ReLU(True),
+            # First layer with more channels and kernel size 4
+            nn.ConvTranspose2d(
+                1024, 512, kernel_size=4, stride=2, padding=1, bias=False
+            ),
+            nn.BatchNorm2d(512),
+            nn.ReLU(True),
+            # Second layer with increased feature map size
+            nn.ConvTranspose2d(
+                512, 256, kernel_size=4, stride=2, padding=1, bias=False
+            ),
+            nn.BatchNorm2d(256),
+            nn.ReLU(True),
+            # Third layer, larger feature maps and kernels
+            nn.ConvTranspose2d(
+                256, 128, kernel_size=4, stride=2, padding=1, bias=False
+            ),
+            nn.BatchNorm2d(128),
+            nn.ReLU(True),
+            # Fourth layer with higher resolution output
+            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(64),
+            nn.ReLU(True),
+            # Final layer that outputs an image (output size 64x64 for instance)
+            nn.ConvTranspose2d(64, 3, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.Tanh(),  # Tanh to scale the output to [-1, 1]
+        )
 
     def forward(self, z):
-        x = self.fc1(z)
-        x = x.view(x.size(0), 256, 4, 4)  # Reshape to 4x4x256
-
-        x = self.relu(self.deconv1(x))
-        x = self.relu(self.deconv2(x))
-        x = self.relu(self.deconv3(x))
-        x = self.tanh(
-            self.deconv4(x)
-        )  # Output image with values in [-1, 1] (due to Tanh activation)
-
-        return x
+        # Reshape the latent vector z into a 4D tensor [batch_size, 512, 1, 1]
+        z = z.view(
+            z.size(0), 512, 1, 1
+        )  # Reshaping to make it compatible with ConvTranspose2d layers
+        return self.model(z)
 
 
 # Define the Discriminator model (DCGAN)
@@ -53,38 +60,26 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
 
-        # Convolutional layers to downsample the image
-        self.conv1 = nn.Conv2d(
-            3, 64, kernel_size=4, stride=2, padding=1
-        )  # Downsample to 32x32
-        self.conv2 = nn.Conv2d(
-            64, 128, kernel_size=4, stride=2, padding=1
-        )  # Downsample to 16x16
-        self.conv3 = nn.Conv2d(
-            128, 256, kernel_size=4, stride=2, padding=1
-        )  # Downsample to 8x8
-        self.conv4 = nn.Conv2d(
-            256, 512, kernel_size=4, stride=2, padding=1
-        )  # Downsample to 4x4
-
-        # Output layer (1 unit for binary classification)
-        self.fc1 = nn.Linear(512 * 4 * 4, 1)
-
-        self.leaky_relu = nn.LeakyReLU(0.2)
-        """ Only neaded for a GAN, since we are mvoing to a WGAN  we can drop it """
-        # Activation functions
-        # self.sigmoid = nn.Sigmoid()
+        # More powerful discriminator with more layers and larger channels
+        self.model = nn.Sequential(
+            # Input is a 64x64 image (or whatever size you are generating)
+            nn.Conv2d(3, 64, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            # Second layer with more filters
+            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2, inplace=True),
+            # Third layer
+            nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2, inplace=True),
+            # Fourth layer
+            nn.Conv2d(256, 512, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2, inplace=True),
+            # Final layer to output a single probability value (real or fake)
+            nn.Conv2d(512, 1, kernel_size=4, stride=1, padding=0, bias=False),
+        )
 
     def forward(self, x):
-        x = self.leaky_relu(self.conv1(x))
-        x = self.leaky_relu(self.conv2(x))
-        x = self.leaky_relu(self.conv3(x))
-        x = self.leaky_relu(self.conv4(x))
-        # x = self.leaky_relu(self.conv5(x))
-        # x = self.leaky_relu(self.conv6(x))
-        x = x.view(x.size(0), -1)  # Flatten the output for the fully connected layer
-        x = self.fc1(x)
-        """ Removing the sigmoid as a WGAN no longer needs it """
-        # x = self.sigmoid(x)  # Output a probability of the image being real or fake
-
-        return x
+        return self.model(x)

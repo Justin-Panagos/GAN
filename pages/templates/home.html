@@ -22,44 +22,49 @@
     {% comment %} <script src="{% static 'js/base.js' %}"></script> {% endcomment %}
     <script>
         document.getElementById('generateForm').addEventListener('submit', function(event) {
-            event.preventDefault();
+        event.preventDefault();
 
-            // Show loading message
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('result').style.display = 'none';
+        // Show loading message
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('result').style.display = 'none';
 
-            // Prepare the form data
-            const formData = new FormData();
-            const imageInput = document.getElementById('imageInput').files[0];
-            const textInput = document.getElementById('textInput').value;
-            
-            formData.append('image', imageInput);
-            formData.append('text', textInput);
+        // Prepare the form data
+        const formData = new FormData();
+        const imageInput = document.getElementById('imageInput').files[0];
+        const textInput = document.getElementById('textInput').value;
+        
+        formData.append('image', imageInput);
+        formData.append('text', textInput);
 
-            // Send AJAX request to generate image
-            fetch("{% url 'pages:generate_image' %}", {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,  // Add CSRF token to headers
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Hide loading message
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('result').style.display = 'block';
+        // Send AJAX request to generate image
+        fetch("{% url 'pages:generate_image' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,  // Add CSRF token to headers
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Generated Data:", data);  // Add this to debug
+            // Hide loading message
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('result').style.display = 'block';
 
+            if (data.image) {
                 // Create image element and set its source
                 const imageElement = document.createElement('img');
                 imageElement.src = 'data:image/png;base64,' + data.image;
                 document.getElementById('result').appendChild(imageElement);
-            })
-            .catch(error => {
-                console.error("Error generating image:", error);
-                document.getElementById('loading').style.display = 'none';
-            });
+            } else {
+                console.error("Image data is missing.");
+            }
+        })
+        .catch(error => {
+            console.error("Error generating image:", error);
+            document.getElementById('loading').style.display = 'none';
         });
+    });
     </script>
 </body>
 </html>

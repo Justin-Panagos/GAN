@@ -17,9 +17,6 @@ from PIL import Image
 from gan.models import Discriminator, Generator
 from gan.utils import latent_vector
 
-# gan_app/views.py
-
-
 # Initialize the Generator (loaded from saved model)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -46,6 +43,7 @@ def load_model_from_checkpoint(model, model_type="generator", device=None):
         print(f"Error loading {model_type} model: {str(e)}")
 
 
+# Load the models globally
 generator = Generator().to(device)
 load_model_from_checkpoint(generator, model_type="generator", device=device)
 
@@ -58,10 +56,6 @@ def image_gen(request):
         # Generate random latent vector for the generator
         noise = torch.randn(1, latent_vector).to(device)
 
-        # Load the pre-trained generator
-        generator = Generator().to(device)
-        load_model_from_checkpoint(generator, model_type="generator", device=device)
-
         # Generate the image using the generator
         generated_image = generator(noise).cpu().detach()
 
@@ -69,10 +63,10 @@ def image_gen(request):
         image = generated_image.squeeze().permute(1, 2, 0).numpy()
         image = (image * 255).astype(np.uint8)
         pil_image = Image.fromarray(image)
-
         # Create the 'generated_images' directory if it doesn't exist
         os.makedirs("datasets/generated_images", exist_ok=True)
 
+        # Save the image locally with a timestamp
         timestamp = int(time.time())
         image_path = f"datasets/generated_images/generated_image_{timestamp}.png"
         pil_image.save(image_path)
@@ -83,6 +77,7 @@ def image_gen(request):
         image_bytes.seek(0)
         encoded_image = base64.b64encode(image_bytes.getvalue()).decode("utf-8")
 
+        # Return the base64 encoded image as JSON
         return JsonResponse({"image": encoded_image})
 
     except Exception as e:
