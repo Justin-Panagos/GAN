@@ -14,4 +14,40 @@ This is a Django web app that allows you to generate images using a pre-trained 
 - torchvision >= 0.13.0
 
 ## Setup
+1. Add .env 
+<!-- Im using uv to managed my packages, super easy and simple to use, highly recommend using it -->
+run :
+$ uv venv   <-- creates the .venv environment that will be used int the project 
+$ uv sync   <-- syncs the .venv environment with the pyproject.toml dependency's 
 
+
+2. Activate you .venv environment. 
+<!-- side note - ill working in linux so ill  provide commands for that  -->
+$ source .venv/bin/activate
+
+3. Start Django server:
+$ python manage.py runserver 8000 
+// You don't need to specify a port, default is 8000
+
+there are 
+
+4. To Train 
+First ensure that you have images, your dataset, you want to train the model on, save training images in datasets/images/
+in your terminal run :
+
+$ python gan/train.py
+
+this will run the training script on the models 
+
+
+
+5. Navigate to the GAN
+Go to your browser and start generating image,
+
+localhost:8000
+
+## Notes :
+
+The current setup has moved away from a traditional GAN - Generative Adversarial Network, and is now an implementation of a WGAN - Wasserstein GAN.
+
+this project will most likely go through a few iterations of being setup in different versions of a GAN.
