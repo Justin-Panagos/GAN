@@ -1,60 +1,38 @@
 # Django GAN
-This GAN project is subject to change and should not be considered a full project just yet, 
 
-iterations :
-  - GAN
-  - WGAN
-  - WGAN-GP (current setup with Tensorflow)
-    
-This is a Django web app that allows you to generate images using a pre-trained Generative Adversarial Network (GAN). 
+This project is a work in progress (WIP) and subject to change. It is not yet a complete or production-ready application but serves as an evolving experiment with Generative Adversarial Networks (GANs). The current implementation uses a Wasserstein GAN with Gradient Penalty (WGAN-GP) integrated with TensorFlow Datasets for image generation in a Django web app.
+
+## Iterations
+- Traditional GAN
+- Wasserstein GAN (WGAN)
+- Wasserstein GAN with Gradient Penalty (WGAN-GP) *(current setup with TensorFlow and PyTorch)*
+
+## Overview
+This is a Django web application that allows users to generate images of cats or dogs using a pre-trained conditional WGAN-GP model. The model is trained on the `cats_vs_dogs` dataset from TensorFlow Datasets, enabling text-conditioned image generation (e.g., "fluffy cat" or "happy dog"). The project leverages PyTorch for the GAN architecture and TensorFlow for dataset handling, running on Python 3.11.11 with Django for the web interface.
 
 ## Features
-- Generate images using a trained GAN model.
-- Interface for generating random images from a latent vector.
-- Built with Django and PyTorch.
+- Generate cat or dog images based on text input (e.g., "cat", "dog", or descriptive phrases like "fluffy white cat").
+- Train the WGAN-GP model on the `cats_vs_dogs` dataset (25,000+ images, 192x192 resolution).
+- Web interface for real-time image generation using Django.
+- Support for GPU acceleration with NVIDIA GPUs (e.g., GeForce GTX 750 Ti) or CPU fallback.
+- Built with Django, PyTorch (for the GAN), and TensorFlow (for datasets).
 
 ## Requirements
-- Python >= 3.11
+- Python == 3.11.11
 - Django >= 5.1.6
-- PyTorch >= 1.12.0
-- torchvision >= 0.13.0
+- PyTorch >= 2.6.0
+- Torchvision >= 0.21.0
+- TensorFlow == 2.14.0
+- TensorFlow Datasets == 4.9.7
+- NumPy == 1.26.4
+- Pillow >= 11.1.0
+- Other dependencies listed in `pyproject.toml`
 
 ## Setup
-1. Add .env 
-<!-- Im using uv to managed my packages, super easy and simple to use, highly recommend using it -->
-run :
-$ uv venv   <-- creates the .venv environment that will be used int the project 
-$ uv sync   <-- syncs the .venv environment with the pyproject.toml dependency's 
 
+### 1. Install Dependencies
+This project uses `uv` (a fast Python package manager) for dependency management. Follow these steps:
 
-2. Activate you .venv environment. 
-<!-- side note - ill working in linux so ill  provide commands for that  -->
-$ source .venv/bin/activate
-
-3. Start Django server:
-$ python manage.py runserver 8000 
-// You don't need to specify a port, default is 8000
-
-there are 
-
-4. To Train
-   
-First ensure that you have images/ dataset, you want to train the model on, save training images in datasets/images/
-in your terminal run :
-
-$ python gan/train.py
-
-this will run the training script on the models 
-
-
-
-5. Navigate to the GAN
-Go to your browser and start generating image,
-
-localhost:8000
-
-## Notes :
-
-The current setup has moved away from a traditional GAN - Generative Adversarial Network, and is now an implementation of a WGAN - Wasserstein GAN.
-
-this project will most likely go through a few iterations of being setup in different versions of a GAN.
+#### Install `uv` (if not already installed)
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
