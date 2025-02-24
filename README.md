@@ -1,9 +1,10 @@
 # Django GAN
 This GAN project is subject to change and should not be considered a full project just yet, 
+
 iterations :
   - GAN
   - WGAN
-  - WGAN-GP (currnt setup with Tensorflow)
+  - WGAN-GP (current setup with Tensorflow)
     
 This is a Django web app that allows you to generate images using a pre-trained Generative Adversarial Network (GAN). 
 
