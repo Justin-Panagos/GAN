@@ -1,5 +1,10 @@
 # Django GAN
-
+This GAN project is subject to change and should not be considered a full project just yet, 
+iterations :
+  - GAN
+  - WGAN
+  - WGAN-GP (currnt setup with Tensorflow)
+    
 This is a Django web app that allows you to generate images using a pre-trained Generative Adversarial Network (GAN). 
 
 ## Features
@@ -8,7 +13,7 @@ This is a Django web app that allows you to generate images using a pre-trained 
 - Built with Django and PyTorch.
 
 ## Requirements
-- Python >= 3.12
+- Python >= 3.11
 - Django >= 5.1.6
 - PyTorch >= 1.12.0
 - torchvision >= 0.13.0
@@ -31,8 +36,9 @@ $ python manage.py runserver 8000
 
 there are 
 
-4. To Train 
-First ensure that you have images, your dataset, you want to train the model on, save training images in datasets/images/
+4. To Train
+   
+First ensure that you have images/ dataset, you want to train the model on, save training images in datasets/images/
 in your terminal run :
 
 $ python gan/train.py
