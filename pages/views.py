@@ -33,7 +33,6 @@ def load_model_from_checkpoint(model, model_type="generator", device=None):
         # Sort files by epoch number (latest first)
         checkpoint_files.sort(key=lambda x: int(x.split("_")[-2]), reverse=True)
         latest_checkpoint = checkpoint_files[0]
-
         # Load the checkpoint file
         checkpoint = torch.load(latest_checkpoint, map_location=device)
         model.load_state_dict(checkpoint["model_state_dict"])
@@ -51,19 +50,35 @@ discriminator = Discriminator().to(device)
 load_model_from_checkpoint(discriminator, model_type="discriminator", device=device)
 
 
+# Simple mapping of text to labels (extend for more complex text)
+def text_to_label(text):
+    text = text.lower().strip()
+    if "cat" in text:
+        return torch.tensor([0]).long()  # Cat label (0)
+    elif "dog" in text:
+        return torch.tensor([1]).long()  # Dog label (1)
+    return torch.tensor([0]).long()  # Default to cat if unclear
+
+
 def image_gen(request):
     try:
+        # Get text input from the POST request
+        text = request.POST.get("text", "random cat")  # Default to "random cat"
+        # Convert text to label (0 for cat, 1 for dog, or extend for text embeddings)
+        labels = text_to_label(text).to(device)
         # Generate random latent vector for the generator
         noise = torch.randn(1, latent_vector).to(device)
 
-        # Generate the image using the generator
-        generated_image = generator(noise).cpu().detach()
+        with torch.no_grad():
+            generated_image = generator(noise, labels).cpu().detach()
 
         # Process the generated image (convert to base64, etc.)
         image = generated_image.squeeze().permute(1, 2, 0).numpy()
-        image = (image * 255).astype(np.uint8)
+        image = ((image + 1) * 127.5).astype(
+            np.uint8
+        )  # Rescale from [-1, 1] to [0, 255]
         pil_image = Image.fromarray(image)
-        # Create the 'generated_images' directory if it doesn't exist
+
         os.makedirs("datasets/generated_images", exist_ok=True)
 
         # Save the image locally with a timestamp

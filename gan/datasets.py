@@ -2,69 +2,93 @@
 
 import os
 
+import tensorflow as tf
+import tensorflow_datasets as tfds
+import torch
+import torch.nn as nn
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress warnings
 
-# Define a custom dataset class to load images from a directory
-class ImageDataset(Dataset):
-    def __init__(self, data_dir, transform=None):
+
+class ImageLabelDataset(Dataset):
+    def __init__(self, tfds_name="cats_vs_dogs", split="train", transform=None):
         """
         Args:
-            data_dir (str): Path to the dataset directory containing images.
-            transform (callable, optional): Transformations to apply to each image.
+            tfds_name (str): Name of the TFDS dataset (e.g., "cats_vs_dogs").
+            split (str): Dataset split (e.g., "train", "test").
+            transform (callable, optional): Optional PyTorch transformations to apply to each image.
         """
-        self.data_dir = data_dir  # Store the directory path
-        self.transform = transform  # Store the transformation pipeline
-        self.image_files = self._get_all_image_files(
-            data_dir
-        )  # Collect all image file paths
+        # Load the dataset from TFDS, including metadata
+        dataset, info = tfds.load(
+            tfds_name, with_info=True, as_supervised=True, split=split
+        )
 
-    def _get_all_image_files(self, dir):
-        # Helper function to recursively find all image files in subdirectories
-        image_files = []
-        for root, dirs, files in os.walk(dir):
-            for file in files:
-                # Filter for common image extensions (case-insensitive)
-                if file.lower().endswith((".png", ".jpg", ".jpeg")):
-                    image_files.append(os.path.join(root, file))
-        return image_files
+        def preprocess(image, label):
+            # Resize to 192x192 (matching your GAN's target resolution)
+            image = tf.image.resize(image, [192, 192])
+            # Normalize to [-1, 1] for compatibility with your GAN
+            image = (tf.cast(image, tf.float32) / 127.5) - 1.0
+            # Return (image, label) for all samples (no filtering)
+            return image, label
+
+        # Apply preprocessing, filter out non-cat images, and prefetch for efficiency
+        self.dataset = (
+            dataset.map(preprocess, num_parallel_calls=tf.data.AUTOTUNE)
+            .filter(lambda image, label: image is not None)
+            .prefetch(tf.data.AUTOTUNE)
+        )
+
+        self.transform = transform  # Store PyTorch transformations if provided
+        self.iterator = iter(self.dataset)  # Create an iterator for TensorFlow dataset
 
     def __len__(self):
-        # Return the total number of images in the dataset
-        return len(self.image_files)
+        # Approximate length (TFDS doesn’t provide exact count easily, use info if needed)
+        # cats_vs_dogs has ~12,500 cat images in the train split
+        return 25000  # Approximate number of cat images
 
     def __getitem__(self, idx):
-        # Load and preprocess the image at the given index
-        img_name = self.image_files[idx]  # Get the file path
-        image = Image.open(img_name).convert("RGB")  # Open image and convert to RGB
-        if self.transform:
-            image = self.transform(image)  # Apply transformations if provided
-        return image
+        # Fetch the next batch or retry if exhausted
+        try:
+            image, label = next(self.iterator)
+            # Convert TensorFlow tensor to NumPy, then to PyTorch tensor
+            image = tf.keras.preprocessing.image.img_to_array(image.numpy())
+            image = (
+                torch.from_numpy(image).permute(2, 0, 1).float()
+            )  # [H, W, C] -> [C, H, W]
+            # Apply PyTorch transformations if specified (e.g., additional augmentation)
+            if self.transform:
+                image = self.transform(image)
+            return image, label.numpy()  # Return image tensor and label (0 for cats)
+        except StopIteration:
+            self.iterator = iter(self.dataset)  # Reset iterator if exhausted
+            return self.__getitem__(idx)
 
 
-# Define the transformation pipeline for preprocessing images
 transform = transforms.Compose(
     [
-        transforms.Resize(192),  # Resize images to 64x64 pixels
-        transforms.CenterCrop(192),  # Crop to ensure a square 64x64 output
         transforms.RandomHorizontalFlip(),  # Randomly flip images horizontally to add variety
         transforms.RandomRotation(
             10
         ),  # Randomly rotate images by up to 10 degrees for augmentation
-        transforms.ToTensor(),  # Convert image to a PyTorch tensor (0-1 range)
-        transforms.Normalize(
-            (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
-        ),  # Normalize to [-1, 1] range
     ]
 )
 
 
 # Function to create a DataLoader for batching and shuffling the dataset
-def get_data_loader(batch_size=16, data_dir="./datasets/images"):
-    # Instantiate the dataset with the specified directory and transformations
-    dataset = ImageDataset(data_dir=data_dir, transform=transform)
+def get_data_loader(batch_size=8, tfds_name="cats_vs_dogs", split="train"):
+    """
+    Create a PyTorch DataLoader for the specified TFDS dataset.
+
+    Args:
+        batch_size (int): Batch size for training (default 8 for stability).
+        tfds_name (str): Name of the TFDS dataset (e.g., "cats_vs_dogs").
+        split (str): Dataset split (e.g., "train", "test").
+    """
+    # Instantiate the dataset with TFDS and transformations
+    dataset = ImageLabelDataset(tfds_name=tfds_name, split=split, transform=transform)
     # Create a DataLoader to batch and shuffle the data for training
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     return dataloader
