@@ -16,9 +16,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from gan.datasets import get_data_loader  # Loads the dataset of real images
 from gan.models import Discriminator, Generator  # The WGAN-GP models
 from gan.utils import compute_gradient_penalty  # Utility functions
-from gan.utils import latent_vector, save_generated_images
+from gan.utils import latent_vector, load_model_from_checkpoint
 
 # Set the device to GPU if available, otherwise CPU
+""" My GPU was creating a bottle neck for some time, overuse maybe ?? cant flush cache?? not sure """
+# "cuda" if torch.cuda.is_available() else cpu
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Initialize the generator and discriminator models, move them to the device
@@ -29,18 +31,7 @@ discriminator = Discriminator().to(device)
 # - lr=0.0002 for generator, lr=0.0001 for discriminator (slower learning for critic)
 # - betas=(0, 0.9) are standard for WGAN-GP stability
 optimizer_G = optim.Adam(generator.parameters(), lr=0.0001, betas=(0.0, 0.9))
-optimizer_D = optim.Adam(discriminator.parameters(), lr=0.00005, betas=(0.0, 0.9))
-
-
-# Function to load a saved checkpoint for resuming training
-# Load the checkpoint file (contains model weights and optimizer state)
-def load_checkpoint(model, optimizer, filename):
-    checkpoint = torch.load(filename)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-    epoch = checkpoint["epoch"]
-    print(f"Loaded checkpoint {filename}, starting from epoch {epoch}")
-    return epoch
+optimizer_D = optim.Adam(discriminator.parameters(), lr=0.00003, betas=(0.0, 0.9))
 
 
 # Function to save the current state of a model and optimizer
@@ -63,14 +54,18 @@ def train_gan():
     n_critic = 5  # Train critic 5 times per generator step (WGAN-GP standard)
     lambda_gp = 10  # Weight for gradient penalty term in critic loss
 
-    # Check for existing checkpoints to resume training; otherwise start fresh
-    if os.path.exists("datasets/models/chp_2_generator.pth"):
-        load_checkpoint(generator, optimizer_G, "datasets/models/chp_2_generator.pth")
-        load_checkpoint(
-            discriminator, optimizer_D, "datasets/models/chp_2_discriminator.pth"
-        )
-    else:
-        print("No checkpoint found, starting training from scratch.")
+    start_epoch_g = load_model_from_checkpoint(
+        generator, optimizer_G, "generator", device
+    )
+    if start_epoch_g is None:
+        print("No generator checkpoint found, starting from scratch.")
+
+    # Load discriminator checkpoint (if any)
+    start_epoch_d = load_model_from_checkpoint(
+        discriminator, optimizer_D, "discriminator", device
+    )
+    if start_epoch_d is None:
+        print("No discriminator checkpoint found, starting from scratch.")
 
     # Training loop over epochs
     for epoch in range(num_epochs):
@@ -84,6 +79,7 @@ def train_gan():
             real_images = real_images + noise
 
             # Train the critic (discriminator) more often than the generator
+            # with torch.cuda.amp.autocast():
             for _ in range(n_critic):
                 optimizer_D.zero_grad()  # Clear previous gradients
 
@@ -122,18 +118,11 @@ def train_gan():
                 print(
                     f"Epoch [{epoch}/{num_epochs}], Step [{i}/{len(dataloader)}],",
                     f"D Loss: {round(loss_D.item(),2)}, G Loss: {round(loss_G.item(),2)}",
-                    f"Real: {loss_real.item()}, Fake: {loss_fake.item()}, GP: {gradient_penalty.item()}",
+                    f"Real: {round(loss_real.item(),2)}, Fake: {round(loss_fake.item(),2)}, GP: {round(gradient_penalty.item(),5)}",
                 )
 
-            # if i % 50 == 0:
-            #     with torch.no_grad():
-            #         fake_images = generator(noise, labels)
-            #         save_generated_images(
-            #             fake_images, f"datasets/generated_images/epoch_{epoch}_step_{i}"
-            #         )
-
-        # Save model checkpoints every 20 epochs
-        if epoch % 2 == 0:
+        # Save model checkpoints every 5 epochs
+        if epoch % 5 == 0:
             save_checkpoint(
                 generator,
                 optimizer_G,
@@ -173,3 +162,18 @@ if __name__ == "__main__":
 # GP (Gradient Penalty): The gradient penalty term (lambda_gp * gradient_penalty) ensures the
 # critic satisfies the Lipschitz constraint. It should be small (e.g., ~0.1–1) and stable,
 # indicating the critic isn’t overfitting or exploding.
+
+
+"""Extra items of code to be used when during/after debugging steps"""
+
+## add this if statment in into teh train_gan() funciton before starting on the for loop for each epoch if wanting ot train from a certain checkpoint
+# Check for existing checkpoints to resume training; otherwise start fresh
+# if os.path.exists("datasets/models/chp_65_generator.pth"):
+#     load_checkpoint(
+#         generator, optimizer_G, "datasets/models/chp_65_generator.pth   "
+#     )
+#     load_checkpoint(
+#         discriminator, optimizer_D, "datasets/models/chp_65_discriminator.pth"
+#     )
+# else:
+#     print("No checkpoint found, starting training from scratch.")

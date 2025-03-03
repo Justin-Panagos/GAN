@@ -1,5 +1,5 @@
+# pages views.py
 import base64
-import glob
 import io
 import os
 import time
@@ -15,31 +15,10 @@ from django.views.generic import TemplateView
 from PIL import Image
 
 from gan.models import Discriminator, Generator
-from gan.utils import latent_vector
+from gan.utils import latent_vector, load_model_from_checkpoint
 
 # Initialize the Generator (loaded from saved model)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-# Function to load a model from the latest checkpoint
-def load_model_from_checkpoint(model, model_type="generator", device=None):
-    try:
-        # Find all the checkpoint files for the model type (generator or discriminator)
-        checkpoint_files = glob.glob(f"gan/models/*{model_type}.pth")
-        if not checkpoint_files:
-            print(f"No {model_type} checkpoint found!")
-            return
-
-        # Sort files by epoch number (latest first)
-        checkpoint_files.sort(key=lambda x: int(x.split("_")[-2]), reverse=True)
-        latest_checkpoint = checkpoint_files[0]
-        # Load the checkpoint file
-        checkpoint = torch.load(latest_checkpoint, map_location=device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-        print(f"Loaded {model_type} model from {latest_checkpoint}")
-
-    except Exception as e:
-        print(f"Error loading {model_type} model: {str(e)}")
 
 
 # Load the models globally
@@ -61,6 +40,7 @@ def text_to_label(text):
 
 
 def image_gen(request):
+    torch.cuda.empty_cache()
     try:
         # Get text input from the POST request
         text = request.POST.get("text", "random cat")  # Default to "random cat"

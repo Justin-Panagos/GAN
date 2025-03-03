@@ -69,10 +69,10 @@ class ImageLabelDataset(Dataset):
 
 transform = transforms.Compose(
     [
-        transforms.RandomHorizontalFlip(),  # Randomly flip images horizontally to add variety
-        transforms.RandomRotation(
-            10
-        ),  # Randomly rotate images by up to 10 degrees for augmentation
+        # Randomly flip images horizontally to add variety
+        transforms.RandomHorizontalFlip(),
+        # Randomly rotate images by up to 10 degrees for augmentation
+        transforms.RandomRotation(10),
     ]
 )
 

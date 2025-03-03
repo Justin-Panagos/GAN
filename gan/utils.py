@@ -1,5 +1,7 @@
 # gan/utils.py
 
+import glob
+
 import torch
 import torch.nn.functional as F
 from torchvision.utils import save_image
@@ -16,8 +18,38 @@ def save_generated_images(images, epoch):
     save_image(images, f"datasets/generated_images/epoch_{epoch}.png")
 
 
+# Function to load a model from the latest checkpoint
+def load_model_from_checkpoint(
+    model, optimizer=None, model_type="generator", device=None
+):
+    try:
+        # Find all the checkpoint files for the model type (generator or discriminator)
+        checkpoint_files = glob.glob(f"datasets/models/*{model_type}.pth")
+        if not checkpoint_files:
+            print(f"No {model_type} checkpoint found!")
+            return None  # Return None if no checkpoint is found
+
+        # Sort files by epoch number (latest first)
+        checkpoint_files.sort(key=lambda x: int(x.split("_")[-2]), reverse=True)
+        latest_checkpoint = checkpoint_files[0]
+        # Load the checkpoint file
+        checkpoint = torch.load(latest_checkpoint, map_location=device)
+        model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+        if optimizer is not None and "optimizer_state_dict" in checkpoint:
+            optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        epoch = checkpoint.get("epoch", 0)  # Default to 0 if epoch not in checkpoint
+        print(
+            f"Loaded {model_type} model and optimizer from {latest_checkpoint}, starting from epoch {epoch}"
+        )
+        return epoch  # Return epoch to resume training
+
+    except Exception as e:
+        print(f"Error loading {model_type} model: {str(e)}")
+        return None
+
+
 # Function to clip the weights of the discriminator (critic)
-def compute_gradient_penalty(D, real_samples, fake_samples, labels, device="cuda"):
+def compute_gradient_penalty(D, real_samples, fake_samples, labels, device="cpu"):
     alpha = torch.rand(real_samples.size(0), 1, 1, 1).to(device)
     interpolates = (alpha * real_samples + (1 - alpha) * fake_samples).requires_grad_(
         True
@@ -44,3 +76,14 @@ def compute_gradient_penalty(D, real_samples, fake_samples, labels, device="cuda
     # Calculate gradient penalty as the mean squared difference from norm=1
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
     return gradient_penalty
+
+
+# Function to load a saved checkpoint for resuming training
+# Load the checkpoint file (contains model weights and optimizer state)
+def load_checkpoint(model, optimizer, filename):
+    checkpoint = torch.load(filename)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    epoch = checkpoint["epoch"]
+    print(f"Loaded checkpoint {filename}, starting from epoch {epoch}")
+    return epoch
