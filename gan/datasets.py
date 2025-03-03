@@ -28,7 +28,7 @@ class ImageLabelDataset(Dataset):
 
         def preprocess(image, label):
             # Resize to 192x192 (matching your GAN's target resolution)
-            image = tf.image.resize(image, [192, 192])
+            image = tf.image.resize(image, [128, 128])
             # Normalize to [-1, 1] for compatibility with your GAN
             image = (tf.cast(image, tf.float32) / 127.5) - 1.0
             # Return (image, label) for all samples (no filtering)

@@ -14,38 +14,39 @@ class Generator(nn.Module):
             2, 32
         )  # 2 classes (cat=0, dog=1), 32-dim embedding
         self.model = nn.Sequential(
-            # Start with 4x4 kernel to upscale from 1x1 to 4x4
-            nn.ConvTranspose2d(
-                latent_vector + 32, 32, 4, 1, 0, bias=False
-            ),  # 4x4, +32 for label
+            # 1x1 → 4x4
+            nn.ConvTranspose2d(latent_vector + 32, 64, 4, 1, 0, bias=False),  # 4x4
+            nn.BatchNorm2d(64),
+            nn.ReLU(True),
+            # 4x4 → 8x8
+            nn.ConvTranspose2d(64, 32, 4, 2, 1, bias=False),  # 8x8
             nn.BatchNorm2d(32),
             nn.ReLU(True),
-            # Double to 8x8
-            nn.ConvTranspose2d(32, 16, 4, 2, 1, bias=False),  # 8x8
+            # 8x8 → 16x16
+            nn.ConvTranspose2d(32, 16, 4, 2, 1, bias=False),  # 16x16
             nn.BatchNorm2d(16),
             nn.ReLU(True),
-            # Double to 16x16
-            nn.ConvTranspose2d(16, 8, 4, 2, 1, bias=False),  # 16x16
+            # 16x16 → 32x32
+            nn.ConvTranspose2d(16, 8, 4, 2, 1, bias=False),  # 32x32
             nn.BatchNorm2d(8),
             nn.ReLU(True),
-            # Triple to 48x48 with output_padding
-            nn.ConvTranspose2d(8, 3, 4, 3, 1, output_padding=1, bias=False),  # 48x48
-            nn.BatchNorm2d(3),
+            # 32x32 → 64x64
+            nn.ConvTranspose2d(8, 4, 4, 2, 1, bias=False),  # 64x64
+            nn.BatchNorm2d(4),
             nn.ReLU(True),
-            # Quadruple to 192x192
-            nn.ConvTranspose2d(3, 3, 6, 4, 1, bias=False),  # 192x192
+            # 64x64 → 128x128
+            nn.ConvTranspose2d(4, 3, 4, 2, 1, bias=False),  # 128x128, 3 channels (RGB)
             nn.Tanh(),  # Scale output to [-1, 1]
         )
 
     def forward(self, z, labels):
-        # Embed labels (0 or 1) into a 32-dim vector
         label_emb = (
             self.label_emb(labels).unsqueeze(2).unsqueeze(3)
         )  # [batch_size, 32, 1, 1]
-        # Reshape latent vector and concatenate with label embedding
-        z = z.view(z.size(0), latent_vector, 1, 1)  # [batch_size, 512, 1, 1]
-        combined = torch.cat([z, label_emb], dim=1)  # [batch_size, 512+32, 1, 1]
-        # Generate a 192x192x3 image conditioned on the label
+        z = z.view(z.size(0), latent_vector, 1, 1)  # [batch_size, latent_vector, 1, 1]
+        combined = torch.cat(
+            [z, label_emb], dim=1
+        )  # [batch_size, latent_vector+32, 1, 1]
         return self.model(combined)
 
 
@@ -55,27 +56,24 @@ class Discriminator(nn.Module):
         super().__init__()
         self.label_emb = nn.Embedding(2, 32)  # 2 classes, 32-dim embedding
         self.img_net = nn.Sequential(
-            nn.Conv2d(3, 16, 4, 4, 1, bias=False),  # 48x48
+            # 128x128 → 32x32
+            nn.Conv2d(3, 32, 4, 4, 0, bias=False),  # 32x32 (128/4 = 32)
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(16, 32, 4, 3, 1, bias=False),  # 16x16
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(32, 64, 4, 2, 1, bias=False),  # 8x8
+            # 32x32 → 8x8
+            nn.Conv2d(32, 64, 4, 4, 0, bias=False),  # 8x8 (32/4 = 8)
             nn.LeakyReLU(0.2, inplace=True),
         )
-        self.final = nn.Conv2d(64 + 32, 1, 8, 1, 0, bias=False)  # +32 for label
+        self.final = nn.Conv2d(
+            64 + 32, 1, 8, 1, 0, bias=False
+        )  # +32 for label, 8x8 → 1x1
 
     def forward(self, x, labels):
-        # Process image through initial layers
         img_features = self.img_net(x)  # [batch_size, 64, 8, 8]
-        # Embed labels
         label_emb = self.label_emb(labels).view(-1, 32, 1, 1)  # [batch_size, 32, 1, 1]
-        # Expand label embedding to match image feature map size (8x8)
         label_emb = label_emb.repeat(1, 1, 8, 8)  # [batch_size, 32, 8, 8]
-        # Concatenate image features and label embedding
         combined = torch.cat(
             [img_features, label_emb], dim=1
         )  # [batch_size, 64+32, 8, 8]
-        # Final convolution to get a single score
         return self.final(combined)
 
 
