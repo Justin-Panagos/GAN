@@ -87,3 +87,16 @@ def load_checkpoint(model, optimizer, filename):
     epoch = checkpoint["epoch"]
     print(f"Loaded checkpoint {filename}, starting from epoch {epoch}")
     return epoch
+
+
+# Function to save the current state of a model and optimizer
+# Save the epoch number, model weights, and optimizer state to a file
+def save_checkpoint(model, optimizer, epoch, filename="gan_checkpoint.pth"):
+    torch.save(
+        {
+            "epoch": epoch,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+        },
+        filename,
+    )

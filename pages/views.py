@@ -43,11 +43,10 @@ def image_gen(request):
     torch.cuda.empty_cache()
     try:
         # Get text input from the POST request
-        text = request.POST.get("text", "random cat")  # Default to "random cat"
+        text = request.POST.get("text", "random cat")  # Default to "random cat"S
         # Convert text to label (0 for cat, 1 for dog, or extend for text embeddings)
         labels = text_to_label(text).to(device)
 
-        generator = Generator().to(device)
         load_model_from_checkpoint(generator, model_type="generator", device=device)
         # Generate random latent vector for the generator
         noise = torch.randn(1, latent_vector).to(device)

@@ -15,8 +15,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 # Import necessary modules from your gan package
 from gan.datasets import get_data_loader  # Loads the dataset of real images
 from gan.models import Discriminator, Generator  # The WGAN-GP models
-from gan.utils import compute_gradient_penalty  # Utility functions
-from gan.utils import latent_vector, load_model_from_checkpoint
+from gan.utils import (
+    compute_gradient_penalty,  # Utility functions
+    latent_vector,
+    load_model_from_checkpoint,
+    save_checkpoint,
+)
 
 # Set the device to GPU if available, otherwise CPU
 """ My GPU was creating a bottle neck for some time, overuse maybe ?? cant flush cache?? not sure """
@@ -32,19 +36,6 @@ discriminator = Discriminator().to(device)
 # - betas=(0, 0.9) are standard for WGAN-GP stability
 optimizer_G = optim.Adam(generator.parameters(), lr=0.0001, betas=(0.0, 0.9))
 optimizer_D = optim.Adam(discriminator.parameters(), lr=0.00003, betas=(0.0, 0.9))
-
-
-# Function to save the current state of a model and optimizer
-# Save the epoch number, model weights, and optimizer state to a file
-def save_checkpoint(model, optimizer, epoch, filename="gan_checkpoint.pth"):
-    torch.save(
-        {
-            "epoch": epoch,
-            "model_state_dict": model.state_dict(),
-            "optimizer_state_dict": optimizer.state_dict(),
-        },
-        filename,
-    )
 
 
 # Main training function for the WGAN-GP
